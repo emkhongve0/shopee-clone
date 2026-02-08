@@ -25,6 +25,9 @@ class AdminProductController extends Controller
 
     // 2. Lấy dữ liệu từ Service
     $data = $this->productService->getProductPageData($request->all());
+    $data['categories'] = \App\Models\Category::select('id', 'name')->get();
+        $data['totalProducts'] = \App\Models\Product::count();
+        $data['selectedFilters'] = $request->all();
 
     // --- SỬA TẠI ĐÂY ---
     // Chúng ta cần "dịch" giá trị status từ 1/0 sang 'active'/'hidden' cho TẤT CẢ sản phẩm
@@ -32,7 +35,7 @@ class AdminProductController extends Controller
     if (isset($data['allProducts'])) {
         $data['allProducts'] = collect($data['allProducts'])->map(function ($product) {
             // Sử dụng chính hàm mapProductForFrontend bạn đã có trong Controller
-            return $this->mapProductForFrontend($product);
+            return $this->productService->mapProductForFrontend($product);
         })->toArray();
     }
     // ------------------
@@ -117,8 +120,8 @@ class AdminProductController extends Controller
         // 3. Trả về đúng định dạng JSON
         return response()->json([
             'message' => 'Thêm sản phẩm thành công!',
-            'product' => $this->mapProductForFrontend($product)
-        ], 201);
+            'product' => $this->productService->mapProductForFrontend($product)
+            ], 201);
 
     } catch (\Exception $e) {
         return response()->json(['message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
@@ -145,31 +148,12 @@ public function update(Request $request, $id)
 
         return response()->json([
             'message' => 'Cập nhật thành công!',
-            'product' => $this->mapProductForFrontend($updatedProduct)
+            'product' => $this->productService->mapProductForFrontend($updatedProduct)
         ]);
     } catch (\Exception $e) {
         return response()->json(['message' => 'Lỗi cập nhật: ' . $e->getMessage()], 500);
     }
 }
 
-/**
- * Hàm hỗ trợ để định dạng lại dữ liệu trả về cho Alpine.js
- */
-private function mapProductForFrontend($product) {
-    if (is_array($product)) {
-        return $product;
-    }
-    return [
-        'id'          => $product->id,
-        'name'        => $product->name,
-        'sku'         => $product->sku,
-        'price'       => (float)$product->price,
-        'stock'       => (int)$product->stock,
-        'category'    => $product->category->name ?? 'Chưa phân loại',
-        'category_id' => $product->category_id,
-        'status'      => ($product->status == 1) ? 'active' : 'hidden',
-        'image'       => $product->image_url ?? 'https://placehold.co/400x400?text=No+Image',
-        'createdAt'   => $product->created_at->format('d/m/Y')
-    ];
-}
+
 }

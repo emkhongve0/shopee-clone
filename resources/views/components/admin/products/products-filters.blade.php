@@ -13,7 +13,8 @@
         {{-- Tìm kiếm --}}
         <div class="lg:col-span-2 relative">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-            <input type="text" x-model="filters.search" placeholder="Tìm tên, SKU hoặc mã ID..."
+            <input type="text" x-model="filters.search" @input.debounce.300ms="applyFilters()" {{-- Hiệu ứng: Gõ đến đâu lọc đến đó --}}
+                placeholder="Tìm tên, SKU hoặc mã ID..."
                 class="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" />
         </div>
 

@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Constants\ProductStatus;
 
+
 class ProductService
 {
     /**
@@ -261,29 +262,34 @@ public function createProduct(array $data)
 
 public function updateProduct(\App\Models\Product $product, array $data)
 {
-        // 1. Xử lý Trạng thái (Chuyển từ string 'active'/'hidden'/'draft' sang số nếu cần)
-        $statusValue = $product->status;
-        if (isset($data['status'])) {
-            if (is_string($data['status'])) {
-                $s = strtolower($data['status']);
-                $map = [
-                    'active' => 1,
-                    'hidden' => 0,
-                    'draft'  => 2,
-                ];
-
-                $statusValue = $map[$s] ?? $statusValue;
-            } else {
-                $statusValue = (int) $data['status'];
-            }
+    // --- 1. XỬ LÝ TRẠNG THÁI (Logic cũ của bạn) ---
+    $statusValue = $product->status;
+    if (isset($data['status'])) {
+        if (is_string($data['status'])) {
+            $s = strtolower($data['status']);
+            $map = ['active' => 1, 'hidden' => 0, 'draft' => 2];
+            $statusValue = $map[$s] ?? $statusValue;
+        } else {
+            $statusValue = (int) $data['status'];
         }
+    }
 
-    // 2. Tự động cập nhật Slug nếu tên sản phẩm thay đổi
+    // --- 2. XỬ LÝ HÌNH ẢNH (Gom về một chỗ) ---
+    if (request()->hasFile('image')) {
+        // Xóa ảnh cũ nếu tồn tại trong kho (Storage)
+        if ($product->image && Storage::disk('public')->exists($product->image)) {
+            Storage::disk('public')->delete($product->image);
+        }
+        // Lưu ảnh mới vào thư mục 'products'
+        $data['image'] = request()->file('image')->store('products', 'public');
+    }
+
+    // --- 3. CẬP NHẬT SLUG (Logic cũ của bạn) ---
     if (isset($data['name']) && $data['name'] !== $product->name) {
         $data['slug'] = Str::slug($data['name']) . '-' . Str::random(5);
     }
 
-    // 3. Thực hiện cập nhật dữ liệu
+    // --- 4. THỰC HIỆN CẬP NHẬT MỘT LẦN DUY NHẤT ---
     $product->update([
         'name'          => $data['name'] ?? $product->name,
         'sku'           => $data['sku'] ?? $product->sku,
@@ -291,36 +297,24 @@ public function updateProduct(\App\Models\Product $product, array $data)
         'price'         => (float) ($data['price'] ?? $product->price),
         'old_price'     => (float) ($data['old_price'] ?? $product->old_price),
         'stock'         => (int) ($data['stock'] ?? $product->stock),
-        'status'        => (isset($data['status']) && $data['status'] === 'active') ? 1 : 0,
+        'status'        => $statusValue, // Sử dụng biến đã xử lý ở Bước 1
         'category_id'   => $data['category_id'] ?? $product->category_id,
         'badge'         => $data['badge'] ?? $product->badge,
-        'image'         => $data['image'] ?? $product->image,
+        'image'         => $data['image'] ?? $product->image, // Ưu tiên ảnh mới vừa upload
         'is_flash_sale' => isset($data['is_flash_sale']) ? (bool)$data['is_flash_sale'] : $product->is_flash_sale,
+        'description'   => $data['description'] ?? $product->description,
     ]);
 
-    // Xử lý upload ảnh
-    if (request()->hasFile('image')) {
-        // Xóa ảnh cũ nếu có
-        if ($product->image && Storage::exists('public/' . $product->image)) {
-            Storage::delete('public/' . $product->image);
-        }
-        // Lưu ảnh mới vào thư mục products
-        $path = request()->file('image')->store('products', 'public');
-        $data['image'] = $path;
-    }
-
-    $product->update([
-        'name'   => $data['name'] ?? $product->name,
-        'image'  => $data['image'] ?? $product->image, // Nếu không có ảnh mới, giữ ảnh cũ
-        'status' => $statusValue,
-    ]);
-
-    // Tải lại quan hệ category để trả về dữ liệu mới nhất cho frontend
-    return $product->load('category');
+    // --- 5. TRẢ VỀ DỮ LIỆU ĐÃ MAP CHO FRONTEND ---
+    // Dùng $this-> thay vì $this->productService->
+    return $this->mapProductForFrontend($product->load('category'));
 }
 
-private function mapProductForFrontend($p)
+public function mapProductForFrontend($p)
 {
+    if (is_array($p)) {
+        return $p;
+    }
     // Logic xử lý ảnh cũ
     $image = $p->image;
 

@@ -55,29 +55,39 @@
             },
 
             applyFilters() {
-                this.filteredProducts = this.allProducts.filter(p => {
-                    const searchKeyword = this.filters.search.toLowerCase();
-                    const matchesSearch = searchKeyword === '' ||
-                        p.name.toLowerCase().includes(searchKeyword) ||
-                        p.sku.toLowerCase().includes(searchKeyword);
+                // Đảm bảo từ khóa tìm kiếm luôn là chuỗi, dùng trim() để bỏ khoảng trắng thừa
+                const searchKeyword = (this.filters.search || '').toLowerCase().trim();
 
-                    const productCategoryName = p.category || 'Chưa phân loại';
-                    const productCategorySlug = p.category_slug || this.slugify(productCategoryName);
+                this.filteredProducts = this.allProducts.filter(p => {
+                    // 1. Kiểm tra Tên (null-safe)
+                    const name = (p.name || '').toLowerCase();
+
+                    // 2. Kiểm tra SKU (null-safe) - Đây thường là nơi gây lỗi
+                    const sku = (p.sku || '').toLowerCase();
+
+                    // 3. Kiểm tra ID
+                    const id = (p.id || '').toString();
+
+                    const matchesSearch = searchKeyword === '' ||
+                        name.includes(searchKeyword) ||
+                        sku.includes(searchKeyword) ||
+                        id.includes(searchKeyword);
+
+                    // Logic Category và Status giữ nguyên nhưng dùng optional chaining ?. cho an toàn
+                    const productCategorySlug = p.category_slug || this.slugify(p.category || 'Chưa phân loại');
                     const matchesCategory = this.activeCategory === 'all' || productCategorySlug === this.activeCategory;
 
-                    // Logic lọc trạng thái (Đã thêm draft và sửa lỗi cú pháp)
                     const matchesStatus = this.filters.productStatus === 'all' ||
-                        (this.filters.productStatus === 'active' && (p.status === 'active' || p.status === 1)) ||
-                        (this.filters.productStatus === 'hidden' && (p.status === 'hidden' || p.status === 0)) ||
-                        (this.filters.productStatus === 'draft' && (p.status === 'draft' || p.status === 2));
+                        p.status === this.filters.productStatus;
 
                     return matchesSearch &&
                         matchesCategory &&
+                        matchesStatus &&
                         this.checkPrice(p.price) &&
-                        this.checkStock(p.stock) &&
-                        matchesStatus && // Thêm dấu nối ở đây
-                        this.checkRating(p.rating);
+                        this.checkStock(p.stock);
                 });
+
+                this.currentPage = 1;
                 this.applyPagination();
             },
 
@@ -140,79 +150,116 @@
 
             {{-- ĐÃ KẾT NỐI BACKEND --}}
         async saveProduct(product) {
-            this.isLoading = true;
-            const isNew = !product.id;
-            const url = isNew ? '/admin/products' : `/admin/products/${product.id}`;
+                this.isLoading = true;
+                const isNew = !product.id;
+                const url = isNew ? '/admin/products' : `/admin/products/${product.id}`;
 
-            // 1. Khởi tạo FormData
-            const formData = new FormData();
+                // 1. Khởi tạo FormData
+                const formData = new FormData();
 
-            // 2. Đưa thông tin sản phẩm vào FormData
-            Object.keys(product).forEach(key => {
-                /**
-                 * FIX LỖI VALIDATION:
-                 * Chúng ta loại bỏ 'image' (chuỗi URL cũ) và 'imageFile' (biến tạm).
-                 * Chỉ những trường dữ liệu thực sự cần thiết cho Database mới được gửi.
-                 */
-                if (key !== 'image' && key !== 'imageFile' && product[key] !== null) {
-                    formData.append(key, product[key]);
-                }
-            });
-
-            // 3. CHỈ gửi file ảnh nếu người dùng có chọn ảnh mới
-            // Chúng ta đặt tên key là 'image' để khớp với Validation trong Controller
-            if (product.imageFile) {
-                formData.append('image', product.imageFile);
-            }
-
-            // 4. Logic spoofing method của Laravel cho yêu cầu PUT
-            if (!isNew) {
-                formData.append('_method', 'PUT');
-            }
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST', // Giữ nguyên POST cho FormData
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                        'Accept': 'application/json'
-                    },
-                    body: formData
+                // 2. Đưa thông tin sản phẩm vào FormData
+                Object.keys(product).forEach(key => {
+                    /**
+                     * FIX LỖI VALIDATION:
+                     * Chúng ta loại bỏ 'image' (chuỗi URL cũ) và 'imageFile' (biến tạm).
+                     * Chỉ những trường dữ liệu thực sự cần thiết cho Database mới được gửi.
+                     */
+                    if (key !== 'image' && key !== 'imageFile' && product[key] !== null) {
+                        formData.append(key, product[key]);
+                    }
                 });
 
-                const result = await response.json();
+                // 3. CHỈ gửi file ảnh nếu người dùng có chọn ảnh mới
+                // Chúng ta đặt tên key là 'image' để khớp với Validation trong Controller
+                if (product.imageFile) {
+                    formData.append('image', product.imageFile);
+                }
 
-                if (response.ok) {
-                    // --- CẬP NHẬT GIAO DIỆN ---
-                    if (isNew) {
-                        this.allProducts.unshift(result.product);
+                // 4. Logic spoofing method của Laravel cho yêu cầu PUT
+                if (!isNew) {
+                    formData.append('_method', 'PUT');
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST', // Giữ nguyên POST cho FormData
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // --- CẬP NHẬT GIAO DIỆN ---
+                        if (isNew) {
+                            this.allProducts.unshift(result.product);
+                        } else {
+                            const index = this.allProducts.findIndex(p => p.id === product.id);
+                            if (index !== -1) {
+                                this.allProducts[index] = result.product;
+                            }
+                        }
+                        this.applyFilters();
+                        this.isPanelOpen = false;
+
+                        // Giải phóng bộ nhớ và xóa file tạm
+                        product.imageFile = null;
                     } else {
-                        const index = this.allProducts.findIndex(p => p.id === product.id);
+                        // Xử lý khi có lỗi (ví dụ lỗi Validation 422)
+                        if (result.errors) {
+                            const errorMessages = Object.values(result.errors).flat().join('\n');
+                            alert('Dữ liệu không hợp lệ:\n' + errorMessages);
+                        } else {
+                            alert(result.message || 'Có lỗi xảy ra khi lưu.');
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Lỗi kết nối hệ thống');
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            async updateProductStatus(id, newStatus) {
+                this.isLoading = true; // Hiển thị trạng thái đang xử lý
+
+                try {
+                    const response = await fetch(`/admin/products/${id}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                            'Accept': 'application/json'
+                        },
+                        // Chỉ gửi những gì cần thiết, kèm _method để Laravel hiểu là PUT
+                        body: JSON.stringify({ _method: 'PUT', status: newStatus })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // CẬP NHẬT DỮ LIỆU GỐC: Tìm và thay thế bằng object đầy đủ từ Server
+                        const index = this.allProducts.findIndex(p => p.id === id);
                         if (index !== -1) {
                             this.allProducts[index] = result.product;
                         }
-                    }
-                    this.applyFilters();
-                    this.isPanelOpen = false;
 
-                    // Giải phóng bộ nhớ và xóa file tạm
-                    product.imageFile = null;
-                } else {
-                    // Xử lý khi có lỗi (ví dụ lỗi Validation 422)
-                    if (result.errors) {
-                        const errorMessages = Object.values(result.errors).flat().join('\n');
-                        alert('Dữ liệu không hợp lệ:\n' + errorMessages);
+                        // Chạy lại bộ lọc để cập nhật hiển thị
+                        this.applyFilters();
                     } else {
-                        alert(result.message || 'Có lỗi xảy ra khi lưu.');
+                        alert(result.message || 'Lỗi cập nhật');
                     }
+                } catch (e) {
+                    console.error(e);
+                    alert('Lỗi kết nối hệ thống');
+                } finally {
+                    this.isLoading = false;
                 }
-            } catch (e) {
-                console.error(e);
-                alert('Lỗi kết nối hệ thống');
-            } finally {
-                this.isLoading = false;
-            }
-        }
+            },
     }" @filter-changed.window="filters = $event.detail"
         @category-changed.window="activeCategory = $event.detail" @view-mode-changed.window="viewMode = $event.detail"
         @open-bulk-modal.window="handleBulkTrigger($event.detail)" @open-add-modal.window="openAddModal()" x-cloak>
