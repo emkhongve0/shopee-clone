@@ -85,10 +85,11 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <button
-                        class="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-700 active:scale-95">
-                        <i class="fas fa-print"></i> In hóa đơn
-                    </button>
+                    <a :href="'/admin/orders/' + (selectedOrder ? selectedOrder.id : '') + '/download'"
+                        class="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg active:scale-95">
+                        <i class="fas fa-download"></i>
+                        Tải hóa đơn (PDF)
+                    </a>
                     {{-- Form Hủy đơn nhanh (Ẩn input status = canceled) --}}
                     <form :action="'/admin/orders/' + selectedOrder.id + '/status'" method="POST" class="contents">
                         @csrf @method('PATCH')

@@ -114,6 +114,15 @@ Route::middleware(['auth', 'role:admin'])
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
     Route::patch('/orders/{id}/status', [AdminOrderController::class, 'updateStatus'])->name('admin.orders.updateStatus');
     Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('orders.export');
+    Route::patch('/orders/{id}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.updateStatus');
+    Route::post('/orders/bulk-action', [AdminOrderController::class, 'bulkAction'])->name('orders.bulk_action');
+    Route::post('/orders/store', [AdminOrderController::class, 'store'])->name('orders.store');
+    Route::post('/orders/{id}/update-shipping', [AdminOrderController::class, 'updateShippingStatus'])->name('orders.update_shipping');
+    Route::get('/admin/test-print', [AdminOrderController::class, 'testDownload']);
+
+    // Print view (rendered by Browsershot) and download endpoint
+    Route::get('/orders/{id}/print', [AdminOrderController::class, 'print'])->name('orders.print');
+    Route::get('/orders/{id}/download', [AdminOrderController::class, 'downloadInvoice'])->name('orders.download');
 
     // Đặt route này TRƯỚC resource products để tránh bị trùng với show {id}
     Route::post('/products/bulk-action', [AdminProductController::class, 'bulkAction'])->name('products.bulk_action');
@@ -124,8 +133,8 @@ Route::middleware(['auth', 'role:admin'])
 
     // Quản lý người dùng
     Route::get('/users', function () {
-        return view('admin.customers');
-    })->name('admin.users.index');
+        return view('admin.users');
+    })->name('users.index');
 
     // Cài đặt hệ thống
     Route::get('/settings', function () {

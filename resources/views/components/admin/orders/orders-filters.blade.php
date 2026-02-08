@@ -84,9 +84,8 @@
                     <select name="shipping_status" @change="$el.form.submit()"
                         class="w-full bg-slate-900 border border-slate-800 text-white rounded-xl py-2.5 px-4 appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer text-sm hover:bg-slate-800">
                         <option value="all">Tất cả</option>
-                        {{-- Bạn có thể thêm các option cứng nếu DB chưa có Enum cho cái này --}}
-                        <option value="pending" {{ request('shipping_status') == 'pending' ? 'selected' : '' }}>Chờ lấy
-                            hàng</option>
+                        <option value="ready_to_ship"
+                            {{ request('shipping_status') == 'ready_to_ship' ? 'selected' : '' }}>Chờ lấy hàng</option>
                         <option value="shipping" {{ request('shipping_status') == 'shipping' ? 'selected' : '' }}>Đang
                             giao</option>
                         <option value="delivered" {{ request('shipping_status') == 'delivered' ? 'selected' : '' }}>Đã

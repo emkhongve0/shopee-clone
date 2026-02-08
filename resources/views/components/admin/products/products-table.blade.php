@@ -151,10 +151,10 @@
                                     </button>
 
                                     {{-- Sửa sản phẩm: Chuyển hướng trang --}}
-                                    <a :href="'/admin/products/' + product.id + '/edit'"
+                                    <button @@click="viewProduct(product); open = false"
                                         class="flex items-center w-full px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-left border-t border-slate-700/50">
                                         <i class="far fa-edit w-5 text-green-500"></i> Sửa sản phẩm
-                                    </a>
+                                    </button>
 
                                     {{-- Xóa đơn lẻ: Tận dụng Modal Bulk Action nhưng chỉ truyền 1 ID --}}
                                     <button

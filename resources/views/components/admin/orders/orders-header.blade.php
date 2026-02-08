@@ -37,15 +37,27 @@
                 <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-100"
                     x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                     class="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-                    <button
+
+                    {{-- 1. Cập nhật trạng thái đơn hàng --}}
+                    <button @click="handleBulkAction('update_status')"
                         class="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-left">
                         <i class="fas fa-edit w-4 text-blue-500"></i> Cập nhật trạng thái
                     </button>
-                    <button
+
+                    {{-- MỚI: Cập nhật tình trạng giao hàng --}}
+                    <button @click="handleBulkAction('update_shipping')"
+                        class="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-left border-t border-slate-800/50">
+                        <i class="fas fa-truck w-4 text-indigo-500"></i> Cập nhật giao hàng
+                    </button>
+
+                    {{-- 2. Xuất mục đã chọn --}}
+                    <button @click="exportSelectedOrders()"
                         class="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-left border-t border-slate-800/50">
                         <i class="fas fa-file-export w-4 text-green-500"></i> Xuất mục đã chọn
                     </button>
-                    <button
+
+                    {{-- 3. Hủy đơn hàng loạt --}}
+                    <button @click="handleBulkAction('cancel')"
                         class="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-all text-left border-t border-slate-800/50">
                         <i class="fas fa-trash-alt w-4 text-red-500"></i> Hủy đơn hàng loạt
                     </button>
@@ -53,7 +65,7 @@
             </div>
 
             {{-- Nút Tạo đơn hàng --}}
-            <button @click="createNewOrder()"
+            <button @click="isCreatePanelOpen = true"
                 class="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-900/20 active:scale-95">
                 <i class="fas fa-plus text-xs"></i>
                 Tạo đơn hàng

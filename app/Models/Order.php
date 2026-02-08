@@ -15,6 +15,7 @@ class Order extends Model
         'user_id',
         'total_amount',
         'status',
+        'shipping_status',
         'payment_status',
         'shipping_address',
         'note'
@@ -27,6 +28,7 @@ class Order extends Model
     protected $casts = [
         'status' => OrderStatus::class,
         'total_amount' => 'decimal:2',
+        'shipping_status' => \App\Enums\ShippingStatus::class,
     ];
 
     /**
