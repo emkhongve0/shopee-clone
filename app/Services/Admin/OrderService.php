@@ -64,7 +64,9 @@ class OrderService
         $query->where('shipping_status', $filters['shipping_status']);
     }
 
-    return $query->get();
+    return $query->with('user')
+                 ->latest()
+                 ->get();
 }
 
     /**
@@ -92,6 +94,7 @@ class OrderService
             return [
                 'id'            => $order->id,
                 'orderId'       => $order->order_code,
+                'customer_name' => $order->user ? $order->user->name : ($order->customer_name ?? 'Khách vãng lai'),
                 'customer'      => [
                     'name'   => $order->user->name ?? 'Khách vãng lai',
                     'email'  => $order->user->email ?? 'N/A',

@@ -20,6 +20,7 @@ use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminProductController;
+use App\Http\Controllers\Admin\AdminUserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -132,10 +133,16 @@ Route::middleware(['auth', 'role:admin'])
     Route::resource('products', AdminProductController::class);
 
     // Quản lý người dùng
-    Route::get('/users', function () {
-        return view('admin.users');
-    })->name('users.index');
-
+    // Trang danh sách khách hàng
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+    // API lấy chi tiết khách hàng (Dùng cho Modal Details)
+    Route::get('/users/{id}/details', [AdminUserController::class, 'getDetails'])->name('users.details');
+    // Xử lý trạng thái khách hàng
+    Route::post('/users/{id}/toggle', [AdminUserController::class, 'toggleStatus'])->name('users.toggle');
+    Route::post('/users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle-status');
+    Route::post('/users/{id}/reset-password', [AdminUserController::class, 'resetPassword'])->name('users.reset-password');
+    Route::put('/users/{id}', [AdminUserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('users.destroy');
     // Cài đặt hệ thống
     Route::get('/settings', function () {
         return view('admin.settings');

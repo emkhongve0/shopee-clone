@@ -22,7 +22,7 @@
         [
             'icon' => 'fa-users',
             'label' => 'Khách hàng',
-            'route' => 'admin.dashboard', // Trỏ tạm về Dashboard
+            'route' => 'admin.users.index', // Trỏ về route mới
             'active' => 'admin.users*',
         ],
         [

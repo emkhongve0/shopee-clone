@@ -23,7 +23,9 @@ class User extends Authenticatable implements JWTSubject
     'role',
     'status',
     'temp_password',
-    'temp_password_expires_at'
+    'temp_password_expires_at',
+    'total_spent',
+    'orders_count',
     ];
 
     protected $hidden = [
@@ -54,5 +56,13 @@ class User extends Authenticatable implements JWTSubject
 
     public function wishlists() {
     return $this->belongsToMany(Product::class, 'wishlists');
+    }
+
+    /**
+     * Một khách hàng có nhiều đơn hàng
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'user_id');
     }
 }

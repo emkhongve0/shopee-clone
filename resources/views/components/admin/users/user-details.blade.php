@@ -44,7 +44,7 @@
                                         ?.role === 'admin',
                                     'bg-blue-500/10 text-blue-500 border-blue-500/20': selectedUser
                                         ?.role === 'staff',
-                                    'bg-slate-700 text-slate-400 border-slate-600': selectedUser?.role === 'customer'
+                                    'bg-slate-700 text-slate-400 border-slate-600': selectedUser?.role === 'user'
                                 }"
                                 x-text="selectedUser?.role"></span>
                             {{-- Badge Trạng thái --}}
@@ -145,19 +145,19 @@
 
                     {{-- Các nút thao tác (Action Buttons) --}}
                     <div class="space-y-3 pt-6 border-t border-slate-800">
-                        <button
+                        <button @click="isEditPanelOpen = true"
                             class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/20 active:scale-95">
                             <i class="fas fa-user-edit text-sm"></i>
                             Chỉnh sửa thành viên
                         </button>
 
-                        <button
+                        <button @click="resetUserPassword(selectedUser)"
                             class="w-full bg-slate-800 text-slate-300 border border-slate-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:bg-slate-700 hover:text-white active:scale-95">
                             <i class="fas fa-key text-sm"></i>
                             Đặt lại mật khẩu
                         </button>
 
-                        <button
+                        <button @click="toggleUserStatus(selectedUser)"
                             class="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border active:scale-95"
                             :class="selectedUser?.status === 'active' ?
                                 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20' :

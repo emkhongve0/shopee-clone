@@ -48,7 +48,7 @@
                 <option value="all">Tất cả vai trò</option>
                 <option value="admin">Quản trị viên</option>
                 <option value="staff">Nhân viên</option>
-                <option value="customer">Khách hàng</option>
+                <option value="user">Khách hàng</option>
             </select>
             <i
                 class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[10px]"></i>

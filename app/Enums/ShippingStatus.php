@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum ShippingStatus: string
 {
+    case PENDING = 'pending';
     case READY_TO_SHIP = 'ready_to_ship'; // Chờ lấy hàng
     case PICKED_UP     = 'picked_up';     // Đã lấy hàng
     case SHIPPING      = 'shipping';      // Đang giao/Đang vận chuyển
@@ -14,6 +15,7 @@ enum ShippingStatus: string
     public function label(): string
     {
         return match($this) {
+            self::PENDING => 'Chờ xử lý',
             self::READY_TO_SHIP => 'Chờ lấy hàng',
             self::PICKED_UP     => 'Đã lấy hàng',
             self::SHIPPING      => 'Đang giao hàng',

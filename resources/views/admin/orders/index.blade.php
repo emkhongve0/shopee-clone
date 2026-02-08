@@ -165,6 +165,10 @@
 
             viewOrder(order) {
                 this.selectedOrder = JSON.parse(JSON.stringify(order));
+                if (order.user) {
+                    this.selectedOrder.customer_name = order.user.name;
+                    this.selectedOrder.customer_email = order.user.email;
+                }
                 this.isPanelOpen = true;
             },
 
