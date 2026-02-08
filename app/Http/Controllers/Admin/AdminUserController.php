@@ -16,17 +16,33 @@ class AdminUserController extends Controller
     }
 
     public function index(Request $request)
-    {
-        $rawUsers = $this->userService->getFilteredCustomers($request->all());
-        $users = $this->userService->formatForFrontend($rawUsers);
-        $stats = $this->userService->getQuickStats();
+{
+    // 1. Lấy các tham số lọc từ Request (Sticky Filters)
+    // Việc này giúp chúng ta biết người dùng đang tìm gì để hiển thị lại trên ô Input
+    $filters = [
+        'search'    => $request->input('search', ''),
+        'status'    => $request->input('status', 'all'),
+        'role'      => $request->input('role', 'all'),
+        'dateRange' => $request->input('dateRange', 'all'),
+    ];
 
-        return view('admin.users.index', [
-            'users' => $users,
-            'totalCount' => $stats['total'],
-            'stats' => $stats
-        ]);
-    }
+    // 2. Gọi Service với mảng filters đã bóc tách
+    $rawUsers = $this->userService->getFilteredCustomers($filters);
+
+    // 3. Định dạng dữ liệu hiển thị (giữ nguyên logic của bạn)
+    $users = $this->userService->formatForFrontend($rawUsers);
+
+    // 4. Lấy thống kê (giữ nguyên logic cũ)
+    $stats = $this->userService->getQuickStats();
+    
+    return view('admin.users.index', [
+        'users' => $users,
+        'totalCount' => $stats['total'],
+        'stats' => $stats,
+        // QUAN TRỌNG: Gửi filters hiện tại về View để Alpine.js nhận diện
+        'filters' => $filters
+    ]);
+}
 
     public function toggleStatus($id)
 {

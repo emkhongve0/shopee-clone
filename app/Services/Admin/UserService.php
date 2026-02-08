@@ -10,19 +10,24 @@ class UserService
     /**
      * Lấy danh sách người dùng đã qua bộ lọc
      */
-    public function getFilteredCustomers(array $filters)
-{
-    $query = User::query();
+    // app/Services/Admin/UserService.php
 
-    // 1. Sửa logic Role: Hiện tất cả nếu chọn 'all'
+public function getFilteredCustomers(array $filters)
+{
+    $query = \App\Models\User::query();
+
+    // Chỉ lọc status nếu không phải 'all' và giá trị hợp lệ
+    if (!empty($filters['status']) && $filters['status'] !== 'all') {
+        // Convert string thành Enum trước khi query (Laravel sẽ tự match)
+        $query->where('status', $filters['status']);
+    }
+
+    // 1. Lọc theo Vai trò (Role) - nếu không phải 'all'
     if (!empty($filters['role']) && $filters['role'] !== 'all') {
         $query->where('role', $filters['role']);
     }
 
-    if (!empty($filters['status']) && $filters['status'] !== 'all') {
-        $query->where('status', $filters['status']);
-    }
-
+    // 2. Lọc theo Tìm kiếm (Search)
     if (!empty($filters['search'])) {
         $search = $filters['search'];
         $query->where(function ($q) use ($search) {
@@ -32,14 +37,14 @@ class UserService
         });
     }
 
+    // 3. Lọc theo Thời gian (Date Range)
     if (!empty($filters['dateRange']) && $filters['dateRange'] !== 'all') {
-        $this->applyDateFilter($query, $filters['dateRange']);
-    }
-
-    // 2. QUAN TRỌNG: Bỏ withCount và withSum để dùng cột tĩnh trong database
-    return $query->latest()
-                 ->get();
+    $this->applyDateFilter($query, $filters['dateRange']);
 }
+
+    return $query->latest()->get();
+}
+
 
 
 
@@ -49,21 +54,49 @@ class UserService
     public function formatForFrontend($customers)
 {
     return $customers->map(function ($user) {
-        // Ép kiểu status và role về string value
-        $statusLabel = $user->status instanceof \BackedEnum ? $user->status->value : $user->status;
-        $roleLabel = $user->role instanceof \BackedEnum ? $user->role->value : ($user->role ?? 'user');
+        // 1. Xử lý Status: Lấy cả Value (cho logic màu sắc) và Label (cho hiển thị)
+        $statusValue = $user->status instanceof \BackedEnum ? $user->status->value : $user->status;
+
+        // Nếu dùng Enum mới có hàm label(), gọi nó. Nếu không thì dùng giá trị mặc định.
+        $statusLabel = $user->status instanceof \App\Enums\UserStatus
+            ? $user->status->label()
+            : ($statusValue === 'active' ? 'Đang hoạt động' : 'Đã khóa');
+
+        // 2. Xử lý Role
+        $roleValue = $user->role instanceof \BackedEnum ? $user->role->value : ($user->role ?? 'user');
+
+        // Map tên role sang tiếng Việt (nếu cần hiển thị đẹp)
+        $roleDisplay = match($roleValue) {
+            'admin' => 'Quản trị viên',
+            'staff' => 'Nhân viên',
+            default => 'Khách hàng'
+        };
 
         return [
-            'id'         => $user->id,
-            'name'       => $user->name,
-            'email'      => $user->email,
-            'role'       => $roleLabel,
-            'status'     => $statusLabel, // Chắc chắn là 'active' hoặc 'banned'
-            'orders'     => (int)($user->orders_count ?? 0),
-            'totalSpent' => number_format($user->total_spent ?? 0, 0, ',', '.') . '₫',
-            'phone'      => $user->phone ?? 'N/A',
-            'createdAt'  => $user->created_at->format('d/m/Y'),
-            'lastLogin'  => $user->last_login_at ? $user->last_login_at->format('d/m/Y') : now()->format('d/m/Y'),
+            'id'             => $user->id,
+            'name'           => $user->name,
+            'email'          => $user->email,
+
+            // Role
+            'role'           => $roleValue,      // Dùng để lọc: 'admin'
+            'role_display'   => $roleDisplay,    // Dùng để hiện: 'Quản trị viên'
+
+            // Status
+            'status'         => $statusValue,    // Dùng để check logic/màu sắc: 'active'
+            'status_label'   => $statusLabel,    // Dùng để hiện chữ: 'Đang hoạt động'
+
+            // Đơn hàng
+            'orders'         => (int)($user->orders_count ?? 0),
+
+            // Tiền: Gửi 2 định dạng
+            'totalSpent'     => number_format($user->total_spent ?? 0, 0, ',', '.') . '₫', // Để hiển thị
+            'total_spent_raw'=> (float)($user->total_spent ?? 0), // Để sắp xếp (Sort) bên JS
+
+            'phone'          => $user->phone ?? 'Chưa cập nhật',
+
+            // Ngày tháng: Dùng optional để tránh lỗi null
+            'createdAt'      => optional($user->created_at)->format('d/m/Y') ?? 'N/A',
+            'lastLogin'      => optional($user->last_login_at)->format('d/m/Y') ?? 'Chưa đăng nhập',
         ];
     });
 }
@@ -82,22 +115,24 @@ class UserService
     }
 
     private function applyDateFilter($query, $range)
-    {
-        switch ($range) {
-            case 'today':
-                $query->whereDate('created_at', Carbon::today());
-                break;
-            case 'week':
-                $query->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
-                break;
-            case 'month':
-                $query->whereMonth('created_at', Carbon::now()->month);
-                break;
-            case 'year':
-                $query->whereYear('created_at', Carbon::now()->year);
-                break;
-        }
+{
+    $now = Carbon::now(); // Dùng biến now để đồng bộ thời gian
+    switch ($range) {
+        case 'today':
+            $query->whereDate('created_at', $now->today());
+            break;
+        case 'week':
+            // startOfWeek() mặc định là Thứ 2, cẩn thận tùy config server
+            $query->whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()]);
+            break;
+        case 'month':
+            $query->whereMonth('created_at', $now->month)->whereYear('created_at', $now->year);
+            break;
+        case 'year':
+            $query->whereYear('created_at', $now->year);
+            break;
     }
+}
 
     public function toggleStatus($id)
 {

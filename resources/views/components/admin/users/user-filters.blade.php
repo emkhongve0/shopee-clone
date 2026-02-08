@@ -1,35 +1,17 @@
-<div class="bg-[#1e293b] border border-slate-800 rounded-lg p-4 mb-6" x-data="{
-    filters: {
-        search: '',
-        status: 'all',
-        role: 'all',
-        dateRange: 'all'
-    },
-    hasActiveFilters() {
-        return this.filters.search !== '' ||
-            this.filters.status !== 'all' ||
-            this.filters.role !== 'all' ||
-            this.filters.dateRange !== 'all';
-    },
-    clearFilters() {
-        this.filters.search = '';
-        this.filters.status = 'all';
-        this.filters.role = 'all';
-        this.filters.dateRange = 'all';
-        // Gọi hàm submit form hoặc làm mới dữ liệu tại đây nếu cần
-    }
-}">
-
+<div class="bg-[#1e293b] border border-slate-800 rounded-lg p-4 mb-6">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {{-- Ô tìm kiếm --}}
         <div class="lg:col-span-2 relative">
             <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500"></i>
-            <input type="text" x-model="filters.search" placeholder="Tìm theo tên, email hoặc số điện thoại..."
+            {{-- Thêm .debounce để tránh giật lag khi gõ --}}
+            <input type="text" x-model.debounce.300ms="filters.search"
+                placeholder="Tìm theo tên, email hoặc số điện thoại..."
                 class="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm" />
         </div>
 
         {{-- Lọc trạng thái --}}
         <div class="relative">
+            {{-- Khi thay đổi (change), Alpine sẽ tự chạy Watcher đã khai báo ở init() --}}
             <select x-model="filters.status"
                 class="w-full bg-slate-800 border border-slate-700 text-slate-300 rounded-lg py-2 px-3 appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer shadow-sm">
                 <option value="all">Tất cả trạng thái</option>
@@ -69,7 +51,7 @@
         </div>
     </div>
 
-    {{-- Nút xóa bộ lọc (Chỉ hiện khi có bộ lọc đang hoạt động) --}}
+    {{-- Nút xóa bộ lọc (Sử dụng hàm hasActiveFilters và clearFilters từ scope cha) --}}
     <div x-show="hasActiveFilters()" x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
         class="mt-4 flex items-center justify-between border-t border-slate-800 pt-4">
