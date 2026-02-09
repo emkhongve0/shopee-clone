@@ -15,37 +15,43 @@ class UserService
     // app/Services/Admin/UserService.php
 
 public function getFilteredCustomers(array $filters)
-{
-    $query = \App\Models\User::query();
+    {
+        $query = User::query();
 
-    // Chỉ lọc status nếu không phải 'all' và giá trị hợp lệ
-    if (!empty($filters['status']) && $filters['status'] !== 'all') {
-        // Convert string thành Enum trước khi query (Laravel sẽ tự match)
-        $query->where('status', $filters['status']);
+        // LOGIC CHUẨN: Đếm đơn hoàn thành và Tổng tiền thực chi
+        $query->withCount(['orders as orders_count' => function ($q) {
+            $q->where('status', 'completed');
+        }])->withSum(['orders as total_spent' => function ($q) {
+            $q->where('status', 'completed');
+        }], 'total_amount');
+
+        // Lọc Status
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('status', $filters['status']);
+        }
+
+        // Lọc Role
+        if (!empty($filters['role']) && $filters['role'] !== 'all') {
+            $query->where('role', $filters['role']);
+        }
+
+        // Tìm kiếm
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Lọc Thời gian
+        if (!empty($filters['dateRange']) && $filters['dateRange'] !== 'all') {
+            $this->applyDateFilter($query, $filters['dateRange']);
+        }
+
+        return $query->latest()->get();
     }
-
-    // 1. Lọc theo Vai trò (Role) - nếu không phải 'all'
-    if (!empty($filters['role']) && $filters['role'] !== 'all') {
-        $query->where('role', $filters['role']);
-    }
-
-    // 2. Lọc theo Tìm kiếm (Search)
-    if (!empty($filters['search'])) {
-        $search = $filters['search'];
-        $query->where(function ($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
-              ->orWhere('email', 'like', "%{$search}%")
-              ->orWhere('phone', 'like', "%{$search}%");
-        });
-    }
-
-    // 3. Lọc theo Thời gian (Date Range)
-    if (!empty($filters['dateRange']) && $filters['dateRange'] !== 'all') {
-    $this->applyDateFilter($query, $filters['dateRange']);
-}
-
-    return $query->latest()->get();
-}
 
 
 
@@ -53,55 +59,38 @@ public function getFilteredCustomers(array $filters)
     /**
      * Format dữ liệu chuẩn để "đổ" vào Alpine.js
      */
-    public function formatForFrontend($customers)
-{
-    return $customers->map(function ($user) {
-        // 1. Xử lý Status: Lấy cả Value (cho logic màu sắc) và Label (cho hiển thị)
-        $statusValue = $user->status instanceof \BackedEnum ? $user->status->value : $user->status;
+public function formatForFrontend($customers)
+    {
+        return $customers->map(function ($user) {
+            $statusValue = $user->status instanceof \BackedEnum ? $user->status->value : $user->status;
+            $roleValue = $user->role instanceof \BackedEnum ? $user->role->value : ($user->role ?? 'user');
 
-        // Nếu dùng Enum mới có hàm label(), gọi nó. Nếu không thì dùng giá trị mặc định.
-        $statusLabel = $user->status instanceof \App\Enums\UserStatus
-            ? $user->status->label()
-            : ($statusValue === 'active' ? 'Đang hoạt động' : 'Đã khóa');
+            $roleDisplay = match($roleValue) {
+                'admin' => 'Quản trị viên',
+                'staff' => 'Nhân viên',
+                default => 'Khách hàng'
+            };
 
-        // 2. Xử lý Role
-        $roleValue = $user->role instanceof \BackedEnum ? $user->role->value : ($user->role ?? 'user');
+            return [
+                'id'             => $user->id,
+                'name'           => $user->name,
+                'email'          => $user->email,
+                'role'           => $roleValue,
+                'role_display'   => $roleDisplay,
+                'status'         => $statusValue,
+                'status_label'   => $statusValue === 'active' ? 'Đang hoạt động' : 'Đã khóa',
 
-        // Map tên role sang tiếng Việt (nếu cần hiển thị đẹp)
-        $roleDisplay = match($roleValue) {
-            'admin' => 'Quản trị viên',
-            'staff' => 'Nhân viên',
-            default => 'Khách hàng'
-        };
+                // DATA CHUẨN: Lấy từ kết quả withCount/withSum ở trên
+                'orders'         => (int)($user->orders_count ?? 0),
+                'totalSpent'     => number_format($user->total_spent ?? 0, 0, ',', '.') . '₫',
+                'total_spent_raw'=> (float)($user->total_spent ?? 0),
 
-        return [
-            'id'             => $user->id,
-            'name'           => $user->name,
-            'email'          => $user->email,
-
-            // Role
-            'role'           => $roleValue,      // Dùng để lọc: 'admin'
-            'role_display'   => $roleDisplay,    // Dùng để hiện: 'Quản trị viên'
-
-            // Status
-            'status'         => $statusValue,    // Dùng để check logic/màu sắc: 'active'
-            'status_label'   => $statusLabel,    // Dùng để hiện chữ: 'Đang hoạt động'
-
-            // Đơn hàng
-            'orders'         => (int)($user->orders_count ?? 0),
-
-            // Tiền: Gửi 2 định dạng
-            'totalSpent'     => number_format($user->total_spent ?? 0, 0, ',', '.') . '₫', // Để hiển thị
-            'total_spent_raw'=> (float)($user->total_spent ?? 0), // Để sắp xếp (Sort) bên JS
-
-            'phone'          => $user->phone ?? 'Chưa cập nhật',
-
-            // Ngày tháng: Dùng optional để tránh lỗi null
-            'createdAt'      => optional($user->created_at)->format('d/m/Y') ?? 'N/A',
-            'lastLogin'      => optional($user->last_login_at)->format('d/m/Y') ?? 'Chưa đăng nhập',
-        ];
-    });
-}
+                'phone'          => $user->phone ?? 'Chưa cập nhật',
+                'createdAt'      => optional($user->created_at)->format('d/m/Y') ?? 'N/A',
+                'lastLogin'      => optional($user->last_login_at)->format('d/m/Y') ?? 'Chưa đăng nhập',
+            ];
+        });
+    }
 
     /**
      * Thống kê cho User Header
@@ -109,16 +98,16 @@ public function getFilteredCustomers(array $filters)
     public function getQuickStats()
     {
         $now = Carbon::now();
-        return [
-            // Chỉ đếm những người có role là 'user' để thống kê chính xác cho trang khách hàng
-            'total'     => User::where('role', 'user')->count(),
-            'active'    => User::where('role', 'user')->where('status', 'active')->count(),
-            'new_today' => User::where('role', 'user')->whereDate('created_at', Carbon::today())->count(),
-            'new_this_month' => User::where('role', 'user')
-                                ->whereBetween('created_at', [$now->startOfMonth()->toDateTimeString(), $now->endOfMonth()->toDateTimeString()])
-                                ->count(),
-            ];
+        // Chỉ thống kê những người thực sự là khách hàng (role user)
+        $baseQuery = User::where('role', 'user');
 
+        return [
+            'total'          => (clone $baseQuery)->count(),
+            'active'         => (clone $baseQuery)->where('status', 'active')->count(),
+            'new_today'      => (clone $baseQuery)->whereDate('created_at', Carbon::today())->count(),
+            'new_this_month' => (clone $baseQuery)->whereMonth('created_at', $now->month)
+                                                  ->whereYear('created_at', $now->year)->count(),
+        ];
     }
 
     private function applyDateFilter($query, $range)
@@ -189,53 +178,29 @@ public function resetPassword($id)
 // app/Services/Admin/UserService.php
 
 public function updateMember($id, array $data)
-{
-    $user = \App\Models\User::findOrFail($id);
+    {
+        $user = User::findOrFail($id);
 
-    // 1. Cập nhật thông tin cơ bản
-    $user->name = $data['name'] ?? $user->name;
-    $user->email = $data['email'] ?? $user->email;
-    $user->phone = (!empty($data['phone'])) ? $data['phone'] : ($user->phone ?? 'Chưa cập nhật');
+        $user->name = $data['name'] ?? $user->name;
+        $user->email = $data['email'] ?? $user->email;
+        $user->phone = (!empty($data['phone'])) ? $data['phone'] : ($user->phone ?? 'Chưa cập nhật');
+        $user->role = $data['role'] ?? $user->role;
+        $user->status = $data['status'] ?? $user->status;
 
-    // 2. Lấy giá trị Role (Nếu là 'manager' thì nó sẽ lấy đúng chữ 'manager')
-    $roleName = ($data['role'] instanceof \BackedEnum) ? $data['role']->value : (string)($data['role'] ?? $user->role);
-    $user->role = $roleName;
+        $user->save();
 
-    $user->status = ($data['status'] instanceof \BackedEnum) ? $data['status']->value : (string)($data['status'] ?? $user->status);
+        // Đồng bộ Role Spatie (nếu có)
+        if (method_exists($user, 'syncRoles')) {
+            $user->syncRoles([$user->role]);
+        }
 
-    // 3. Xử lý Ngày gia nhập
-    if (!empty($data['createdAt'])) {
-        try {
-            $user->created_at = \Carbon\Carbon::parse(str_replace('/', '-', $data['createdAt']));
-        } catch (\Exception $e) { }
+        // Quan trọng: Load lại thống kê đơn hàng để Panel cập nhật ngay
+        return $user->loadCount(['orders as orders_count' => function ($q) {
+            $q->where('status', 'completed');
+        }])->loadSum(['orders as total_spent' => function ($q) {
+            $q->where('status', 'completed');
+        }], 'total_amount');
     }
-
-    // 4. Xử lý Tiền & Đơn hàng
-    if (isset($data['totalSpent'])) {
-        $cleanAmount = preg_replace('/[^0-9]/', '', (string)$data['totalSpent']);
-        $user->total_spent = (float)$cleanAmount;
-    }
-    if (isset($data['orders'])) {
-        $user->orders_count = (int)$data['orders'];
-    }
-
-    $user->save();
-
-    // 5. ĐỒNG BỘ QUYỀN VỚI SPATIE
-    if (method_exists($user, 'syncRoles')) {
-        // Tự động kiểm tra/tạo Role để tránh lỗi 500 nếu thiếu trong bảng roles
-        $guardName = $user->guard_name ?? 'web';
-
-        \Spatie\Permission\Models\Role::firstOrCreate([
-            'name' => $roleName,
-            'guard_name' => $guardName
-        ]);
-
-        $user->syncRoles([$roleName]);
-    }
-
-    return $user;
-}
 
 public function createMember(array $data)
 {

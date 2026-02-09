@@ -2,10 +2,10 @@
 
 <div {{ $attributes->merge(['class' => 'bg-[#1e293b] border border-slate-800 rounded-xl overflow-hidden shadow-sm']) }}>
     <div class="p-6 border-b border-slate-800 flex items-center justify-between">
-        <h3 class="text-white text-lg font-semibold">Recent Orders</h3>
+        <h3 class="text-white text-lg font-semibold">Đơn hàng gần đây</h3>
         <a href="{{ route('admin.orders.index') }}"
             class="text-blue-500 hover:text-blue-400 text-sm font-medium transition-colors">
-            View All Orders
+            Xem tất cả
         </a>
     </div>
 
@@ -13,11 +13,12 @@
         <table class="w-full text-left">
             <thead>
                 <tr class="bg-slate-850/50 border-b border-slate-800">
-                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Order Code</th>
-                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Customer</th>
-                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Amount</th>
-                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider text-right">Action
+                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Mã đơn hàng</th>
+                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Khách hàng</th>
+                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Số lượng</th>
+                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Trạng thái</th>
+                    <th class="px-6 py-4 text-slate-400 font-medium text-xs uppercase tracking-wider text-right">Hoạt
+                        động
                     </th>
                 </tr>
             </thead>

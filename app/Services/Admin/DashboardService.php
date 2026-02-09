@@ -50,53 +50,94 @@ class DashboardService
     /**
      * 1. Thống kê KPI & Tính tăng trưởng (Growth)
      */
-    private function getKpiStats(): array
-    {
-        $now = Carbon::now();
-        $thisMonth = $now->month;
-        $thisYear  = $now->year;
+    /**
+ * 1. Thống kê KPI - Logic chuẩn Buyer (Người mua thực)
+ * Tính toán dựa trên hành vi mua hàng và vai trò 'user'
+ */
+private function getKpiStats(): array
+{
+    $now = Carbon::now();
+    $thisMonth = $now->month;
+    $thisYear  = $now->year;
 
-        $lastMonthDate = $now->copy()->subMonth();
-        $lastMonth = $lastMonthDate->month;
-        $lastMonthYear = $lastMonthDate->year;
+    $lastMonthDate = $now->copy()->subMonth();
+    $lastMonth = $lastMonthDate->month;
+    $lastMonthYear = $lastMonthDate->year;
 
-        // --- A. DOANH THU ---
-        $revenueCurrent = Order::where('status', 'completed') // Hoặc dùng Enum value
-            ->whereMonth('created_at', $thisMonth)->whereYear('created_at', $thisYear)->sum('total_amount');
-        $revenueLast = Order::where('status', 'completed')
-            ->whereMonth('created_at', $lastMonth)->whereYear('created_at', $lastMonthYear)->sum('total_amount');
+    // --- A. DOANH THU (Chỉ tính các đơn đã hoàn thành) ---
+    $revenueCurrent = Order::where('status', 'completed')
+        ->whereMonth('created_at', $thisMonth)
+        ->whereYear('created_at', $thisYear)
+        ->sum('total_amount');
 
-        // --- B. ĐƠN HÀNG ---
-        $ordersCurrent = Order::whereMonth('created_at', $thisMonth)->whereYear('created_at', $thisYear)->count();
-        $ordersLast    = Order::whereMonth('created_at', $lastMonth)->whereYear('created_at', $lastMonthYear)->count();
+    $revenueLast = Order::where('status', 'completed')
+        ->whereMonth('created_at', $lastMonth)
+        ->whereYear('created_at', $lastMonthYear)
+        ->sum('total_amount');
 
-        // --- C. KHÁCH HÀNG ---
-        // Giả sử role 'customer' là khách hàng
-        $customersCurrent = User::where('role', 'customer')->whereMonth('created_at', $thisMonth)->whereYear('created_at', $thisYear)->count();
-        $customersLast    = User::where('role', 'customer')->whereMonth('created_at', $lastMonth)->whereYear('created_at', $lastMonthYear)->count();
+    // --- B. ĐƠN HÀNG (Tổng số đơn phát sinh trong tháng) ---
+    $ordersCurrent = Order::whereMonth('created_at', $thisMonth)
+        ->whereYear('created_at', $thisYear)
+        ->count();
 
-        // --- D. TỶ LỆ CHUYỂN ĐỔI (Đơn hàng / Tổng User mới * 100) ---
-        $conversionRate = ($customersCurrent > 0) ? ($ordersCurrent / $customersCurrent) * 100 : 0;
+    $ordersLast = Order::whereMonth('created_at', $lastMonth)
+        ->whereYear('created_at', $lastMonthYear)
+        ->count();
 
-        return [
-            'total_revenue' => [
-                'value'  => $revenueCurrent,
-                'change' => $this->calculateGrowth($revenueCurrent, $revenueLast)
-            ],
-            'total_orders' => [
-                'value'  => $ordersCurrent,
-                'change' => $this->calculateGrowth($ordersCurrent, $ordersLast)
-            ],
-            'total_customers' => [
-                'value'  => User::where('role', 'customer')->count(), // Tổng user toàn thời gian
-                'change' => $this->calculateGrowth($customersCurrent, $customersLast) // Tăng trưởng so với tháng trước
-            ],
-            'conversion_rate' => [
-                'value'  => number_format($conversionRate, 1) . '%',
-                'change' => '0' // KPI này thường khó tính growth chính xác theo tháng
-            ],
-        ];
-    }
+    // --- C. KHÁCH HÀNG (Logic: Người dùng có vai trò 'user' và đã từng mua hàng) ---
+    // 1. Tổng số "Người mua thực" từ trước đến nay
+    $totalRealBuyers = User::where('role', 'user')
+        ->whereHas('orders', function($q) {
+            $q->where('status', 'completed');
+        })->count();
+
+    // 2. Số người thực hiện đơn hàng thành công đầu tiên trong tháng này
+    $buyersThisMonth = User::where('role', 'user')
+        ->whereHas('orders', function($q) use ($thisMonth, $thisYear) {
+            $q->whereMonth('created_at', $thisMonth)
+              ->whereYear('created_at', $thisYear)
+              ->where('status', 'completed');
+        })->count();
+
+    // 3. Số người thực hiện đơn hàng thành công đầu tiên trong tháng trước
+    $buyersLastMonth = User::where('role', 'user')
+        ->whereHas('orders', function($q) use ($lastMonth, $lastMonthYear) {
+            $q->whereMonth('created_at', $lastMonth)
+              ->whereYear('created_at', $lastMonthYear)
+              ->where('status', 'completed');
+        })->count();
+
+    // --- D. TỶ LỆ CHUYỂN ĐỔI (Chuẩn sàn lớn: Buyer mới / Người đăng ký mới) ---
+    // Lấy tổng số người đăng ký mới (role 'user') trong tháng
+    $newRegistersThisMonth = User::where('role', 'user')
+        ->whereMonth('created_at', $thisMonth)
+        ->whereYear('created_at', $thisYear)
+        ->count();
+
+    // Tỷ lệ chuyển đổi = (Số người mua mới / Số người đăng ký mới) * 100
+    $conversionRate = ($newRegistersThisMonth > 0)
+        ? ($buyersThisMonth / $newRegistersThisMonth) * 100
+        : 0;
+
+    return [
+        'total_revenue' => [
+            'value'  => $revenueCurrent,
+            'change' => $this->calculateGrowth($revenueCurrent, $revenueLast)
+        ],
+        'total_orders' => [
+            'value'  => $ordersCurrent,
+            'change' => $this->calculateGrowth($ordersCurrent, $ordersLast)
+        ],
+        'total_customers' => [
+            'value'  => $totalRealBuyers,
+            'change' => $this->calculateGrowth($buyersThisMonth, $buyersLastMonth)
+        ],
+        'conversion_rate' => [
+            'value'  => number_format($conversionRate, 1) . '%',
+            'change' => $this->calculateGrowth($buyersThisMonth, $buyersLastMonth)
+        ],
+    ];
+}
 
     /**
      * Hàm phụ trợ tính phần trăm tăng trưởng
@@ -204,12 +245,32 @@ class DashboardService
      */
     private function getTopSellingProducts()
     {
-        return OrderItem::select('product_id', DB::raw('SUM(quantity) as sales'), DB::raw('SUM(total) as revenue'))
-            ->with(['product:id,name,image,category_id']) // Eager load nhẹ
+        return OrderItem::select('product_id',
+                DB::raw('SUM(quantity) as total_sales'),
+                DB::raw('SUM(total) as total_revenue'))
             ->groupBy('product_id')
-            ->orderByDesc('sales')
+            ->orderByDesc('total_sales') // Ưu tiên sản phẩm bán được nhiều nhất
             ->take(5)
-            ->get();
+            ->with(['product' => function($q) {
+                // Lấy thông tin sản phẩm và danh mục liên quan
+                $q->select('id', 'name', 'image', 'category_id')
+                  ->with('category:id,name');
+            }])
+            ->get()
+            ->map(function($item) {
+                $product = $item->product;
+
+                return [
+                    'name'     => $product->name ?? 'Sản phẩm không tồn tại',
+                    // Kiểm tra và lấy đường dẫn ảnh sản phẩm
+                    'image'    => $product ? ($product->image_url ?? $product->image) : null,
+                    'category' => $product->category->name ?? 'Chưa phân loại',
+                    // Định dạng hiển thị số lượng và doanh thu
+                    'sales'    => number_format($item->total_sales),
+                    'revenue'  => number_format($item->total_revenue, 0, ',', '.') . '₫',
+                ];
+            })
+            ->toArray(); // Chuyển sang mảng để Blade Component dễ dàng truy cập $product['key']
     }
 
     /**
@@ -217,10 +278,22 @@ class DashboardService
      */
     private function getLowStockItems()
     {
-        return Product::where('stock', '<=', 10)
-            ->orderBy('stock', 'asc')
+        // Ngưỡng cảnh báo (có thể chỉnh sửa tùy nhu cầu)
+        $threshold = 10;
+
+        return Product::where('stock', '<=', $threshold)
+            ->orderBy('stock', 'asc') // Ưu tiên hiện sản phẩm còn ít nhất lên đầu
             ->take(5)
-            ->get();
+            ->get()
+            ->map(function($product) use ($threshold) {
+                return [
+                    'name'      => $product->name,
+                    'sku'       => $product->sku ?? 'N/A', // Đảm bảo có SKU để hiển thị
+                    'stock'     => (int) $product->stock,
+                    'threshold' => $threshold, // Truyền ngưỡng để hiển thị "X of 10"
+                ];
+            })
+            ->toArray();
     }
 
     /**

@@ -65,4 +65,24 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Order::class, 'user_id');
     }
+
+    /**
+ * Đếm tổng đơn hàng đã hoàn thành
+ */
+public function getOrdersCountCompletedAttribute()
+{
+    return $this->orders()->where('status', 'completed')->count();
+}
+
+/**
+ * Tính tổng tiền đã chi cho các đơn hàng hoàn thành
+ */
+public function getTotalSpentFormattedAttribute()
+{
+    $total = $this->orders()
+        ->where('status', 'completed')
+        ->sum('total_amount');
+
+    return number_format($total, 0, ',', '.') . '₫';
+}
 }

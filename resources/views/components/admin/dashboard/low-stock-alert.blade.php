@@ -4,7 +4,7 @@
     <div class="p-6 pb-4 border-b border-slate-800 flex items-center justify-between">
         <h3 class="text-white text-lg font-semibold flex items-center gap-2">
             <i class="fas fa-exclamation-triangle text-orange-500"></i>
-            Low Stock Alerts
+            Hàng tồn kho thấp
         </h3>
         {{-- Hiển thị số lượng item từ mảng [cite: 94] --}}
         <span
@@ -37,7 +37,7 @@
         </div>
         <button
             class="w-full mt-6 py-2 px-4 bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 rounded-lg font-medium text-sm transition-colors border border-orange-500/20">
-            Restock All Items
+            Bổ sung lại các mặt hàng
         </button>
     </div>
 </div>

@@ -7,19 +7,19 @@
         {{-- Hàng 1: KPI Cards - Đã thêm phòng thủ chống lỗi Undefined Key --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {{-- Card 1: Doanh thu --}}
-            <x-admin.dashboard.kpi-card title="Total Revenue" :value="number_format($kpis['total_revenue']['value'] ?? 0) . '₫'" :change="$kpis['total_revenue']['change'] ?? '0'" icon="fa-dollar-sign"
+            <x-admin.dashboard.kpi-card title="Doanh thu" :value="number_format($kpis['total_revenue']['value'] ?? 0) . '₫'" :change="$kpis['total_revenue']['change'] ?? '0'" icon="fa-dollar-sign"
                 iconBgColor="bg-blue-500/10" iconColor="text-blue-500" />
 
             {{-- Card 2: Đơn hàng --}}
-            <x-admin.dashboard.kpi-card title="Total Orders" :value="number_format($kpis['total_orders']['value'] ?? 0)" :change="$kpis['total_orders']['change'] ?? '0'" icon="fa-shopping-cart"
+            <x-admin.dashboard.kpi-card title="Đơn hàng" :value="number_format($kpis['total_orders']['value'] ?? 0)" :change="$kpis['total_orders']['change'] ?? '0'" icon="fa-shopping-cart"
                 iconBgColor="bg-emerald-500/10" iconColor="text-emerald-500" />
 
             {{-- Card 3: Khách hàng --}}
-            <x-admin.dashboard.kpi-card title="Total Customers" :value="number_format($kpis['total_customers']['value'] ?? 0)" :change="$kpis['total_customers']['change'] ?? '0'" icon="fa-users"
+            <x-admin.dashboard.kpi-card title="Khách hàng" :value="number_format($kpis['total_customers']['value'] ?? 0)" :change="$kpis['total_customers']['change'] ?? '0'" icon="fa-users"
                 iconBgColor="bg-purple-500/10" iconColor="text-purple-500" />
 
             {{-- Card 4: Tỷ lệ chuyển đổi --}}
-            <x-admin.dashboard.kpi-card title="Conversion Rate" :value="$kpis['conversion_rate']['value'] ?? '0%'" :change="$kpis['conversion_rate']['change'] ?? '0'" icon="fa-chart-line"
+            <x-admin.dashboard.kpi-card title="Tỷ lệ chuyển đổi" :value="$kpis['conversion_rate']['value'] ?? '0%'" :change="$kpis['conversion_rate']['change'] ?? '0'" icon="fa-chart-line"
                 iconBgColor="bg-orange-500/10" iconColor="text-orange-500" />
         </div>
 

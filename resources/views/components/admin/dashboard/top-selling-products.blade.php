@@ -2,7 +2,7 @@
 
 <div class="bg-[#1e293b] border border-slate-800 rounded-xl shadow-sm">
     <div class="p-6 border-b border-slate-800">
-        <h3 class="text-white text-lg font-semibold">Top Selling Products</h3>
+        <h3 class="text-white text-lg font-semibold">Sản phẩm bán chạy</h3>
     </div>
     <div class="p-6 space-y-4">
         @foreach ($products as $product)

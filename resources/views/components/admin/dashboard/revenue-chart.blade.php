@@ -9,7 +9,7 @@
 
     {{-- Card Header: Tiêu đề và Nút chuyển đổi --}}
     <div class="p-6 flex flex-row items-center justify-between pb-2">
-        <h3 class="text-white text-lg font-semibold tracking-tight">Revenue Analytics</h3>
+        <h3 class="text-white text-lg font-semibold tracking-tight">Phân tích doanh thu</h3>
 
         <div class="flex gap-2">
             <template x-for="p in ['daily', 'weekly', 'monthly']">
@@ -66,7 +66,7 @@
                         easing: 'linear',
                         duration: totalDuration / chartData[this.period].length,
                         from: (ctx) => ctx.chart.scales.y.getPixelForValue(
-                        0), // Vẽ từ trục 0 đi lên theo tiến trình ngang
+                            0), // Vẽ từ trục 0 đi lên theo tiến trình ngang
                         delay: delayBetweenPoints
                     }
                 };
