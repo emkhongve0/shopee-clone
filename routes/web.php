@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminProductController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\SettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -146,7 +147,6 @@ Route::middleware(['auth', 'role:admin'])
     Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
     Route::get('/users/export', [AdminUserController::class, 'export'])->name('users.export');
     // Cài đặt hệ thống
-    Route::get('/settings', function () {
-        return view('admin.settings');
-    })->name('admin.settings');
+    Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings/update', [SettingController::class, 'update'])->name('settings.update');
 });

@@ -16,19 +16,19 @@
         [
             'icon' => 'fa-box',
             'label' => 'Quản lý sản phẩm',
-            'route' => 'admin.products.index', // Trỏ tạm về Dashboard để không lỗi
+            'route' => 'admin.products.index',
             'active' => 'admin.products*',
         ],
         [
             'icon' => 'fa-users',
             'label' => 'Khách hàng',
-            'route' => 'admin.users.index', // Trỏ về route mới
+            'route' => 'admin.users.index',
             'active' => 'admin.users*',
         ],
         [
             'icon' => 'fa-cog',
             'label' => 'Cài đặt',
-            'route' => 'admin.dashboard', // Trỏ tạm về Dashboard
+            'route' => 'admin.settings.index',
             'active' => 'admin.settings*',
         ],
     ];
