@@ -80,7 +80,7 @@
                                 <select x-model="selectedUser.role"
                                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-purple-500">
                                     <option value="admin">Quản trị viên</option>
-                                    <option value="staff">Nhân viên</option>
+                                    <option value="manager">Nhân viên</option>
                                     <option value="user">Khách hàng</option>
                                 </select>
                             </div>
@@ -123,7 +123,7 @@
                         <div class="bg-slate-900/30 p-4 rounded-2xl border border-slate-800/50">
                             <label class="text-slate-500 text-[10px] uppercase font-black mb-1 block">Ngày gia nhập hệ
                                 thống</label>
-                            <input type="text" x-model="selectedUser.createdAt"
+                            <input type="text" x-model="selectedUser.createdAt" placeholder="Ví dụ: 09/02/2026 10:00"
                                 class="w-full bg-transparent border-b border-slate-700 text-slate-400 text-sm py-1 focus:border-blue-500 outline-none transition-all">
                         </div>
 
@@ -141,7 +141,6 @@
                     </div>
                 </template>
                 {{-- KẾT THÚC TEMPLATE --}}
-
             </div>
         </div>
     </div>

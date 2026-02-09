@@ -34,7 +34,7 @@ class AdminUserController extends Controller
 
     // 4. Lấy thống kê (giữ nguyên logic cũ)
     $stats = $this->userService->getQuickStats();
-    
+
     return view('admin.users.index', [
         'users' => $users,
         'totalCount' => $stats['total'],
@@ -101,5 +101,41 @@ public function destroy($id)
             'message' => 'Lỗi: ' . $e->getMessage()
         ], 500);
     }
+}
+
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'role' => 'required',
+        'status' => 'required'
+    ]);
+
+    try {
+        // Bạn có thể thêm hàm createMember vào UserService tương tự updateMember
+        $user = $this->userService->createMember($request->all());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã thêm người dùng mới thành công!',
+            'user' => $this->userService->formatForFrontend(collect([$user]))->first()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
+public function export(Request $request)
+{
+    $filters = [
+        'status'    => $request->input('status', 'all'),
+        'role'      => $request->input('role', 'all'),
+        'dateRange' => $request->input('dateRange', 'all'),
+        'search'    => $request->input('search', ''),
+    ];
+
+    // Trả về trực tiếp lệnh download Excel
+    return $this->userService->exportUsersExcel($filters);
 }
 }

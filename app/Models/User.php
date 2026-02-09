@@ -34,8 +34,8 @@ class User extends Authenticatable implements JWTSubject
 
     // CẬP NHẬT MỚI: Tự động convert data sang Enum object
     protected $casts = [
-        'role'   => UserRole::class,
-        'status' => UserStatus::class,
+        'role' => \App\Enums\UserRole::class,
+        'status' => \App\Enums\UserStatus::class,
         'temp_password_expires_at' => 'datetime',
     ];
 

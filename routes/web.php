@@ -143,6 +143,8 @@ Route::middleware(['auth', 'role:admin'])
     Route::post('/users/{id}/reset-password', [AdminUserController::class, 'resetPassword'])->name('users.reset-password');
     Route::put('/users/{id}', [AdminUserController::class, 'update'])->name('users.update');
     Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+    Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+    Route::get('/users/export', [AdminUserController::class, 'export'])->name('users.export');
     // Cài đặt hệ thống
     Route::get('/settings', function () {
         return view('admin.settings');
